@@ -29,7 +29,8 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	private Integer yCursor;
 	private Integer boardWitdh;
 	private Integer boardHeight;
-	private Integer[][] board;
+	private static Integer[][] board;
+	private Integer spawnTime;
 	private Home home;
 	private Vector<Enemy> enemyList;
 	private Vector<Tower> towerList;
@@ -44,10 +45,15 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		enemyList = new Vector<>();
 		towerList = new Vector<>();
 		random = new Random();
+	}
+	
+	public void newGame(){
 		createWall();
 		createFloor();
 		createHome();
 		createEnemy();
+		spawnTime = 3000;
+		
 		gameThread = new Thread(this);
 		gameThread.start();
 	}
@@ -77,20 +83,57 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 			for (Integer j = 1; j < boardWitdh - 1; j++) {
 				if (i == 1 ||  j == 1 || j == (boardWitdh - 2)) {
 					enemyList.add(new Enemy(j, i, "not_active"));
-					board[i][j] = Type.ENEMY;
+					board[i][j] = Type.SPAWNER;
 				}
 			}
 		}
+		
+		Thread enemySpawner = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while(!isGameOver){
+					System.out.println("Spawning in: "+ spawnTime);
+					try {
+						Thread.sleep(spawnTime);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					
+					Integer enemyToBeSpawn;
+					enemyToBeSpawn = random.nextInt(enemyList.size());
+					
+					while(!enemyList.get(enemyToBeSpawn).getStatus().equals("not_active")){
+						enemyToBeSpawn++;
+						if(enemyToBeSpawn > enemyList.size()-1) enemyToBeSpawn = 0;
+					}
+					
+					enemyList.get(enemyToBeSpawn).spawn();
+					
+					if(spawnTime > 100) spawnTime -= 100;
+				}
+			}
+		});
+		
+		enemySpawner.start();
+	}
+	
+	public static void addBoardWeight(int x, int y, int cost){
+		board[y][x] += cost;
+	}
+	
+	public static void removeBoardWeight(int x, int y, int cost){
+		board[y][x] -= cost;
 	}
 	
 	public void createHome() {
-		home = new Home(20, 25, 100);
+		home = new Home(20, 25, 3);
 		board[home.getY()][home.getX()] = Type.HOME;
 	}
 	
 	public void createTower(Integer x, Integer y) {
 		towerList.add(new Tower(x, y, null));
-		board[y][x] = Type.TOWER;
+		board[y][x] += Type.TOWER;
 		createDamageArea(x, y);
 	}
 	
@@ -99,7 +142,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		for (int i = (yCentral - 5); i <= yCentral + 5; i++) {
 			for (int j = (xCentral - c); j <= xCentral + c; j++) {
 				if (i >= 2 && i <= (boardHeight - 2) && j >= 2 && j <= (boardWitdh - 3)) {
-					board[i][j] = Type.RADIUS;
+					board[i][j] += Type.RADIUS;
 				}
 			}
 			if (i < yCentral) {
@@ -148,7 +191,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		for (Enemy enemy : enemyList) {
 			if (enemy.getStatus().equals("active") || enemy.getStatus().equals("progressing")) {
 				g2d.fillOval(enemy.getX() * 20 + 3, enemy.getY() * 20 + 3, 15, 15);
-			} else {
+			} else if(enemy.getStatus().equals("not_active") || enemy.getStatus().equals("spawning")) {
 				g2d.drawLine(enemy.getX() * 20, enemy.getY() * 20, (enemy.getX() + 1) * 20, (enemy.getY() + 1) * 20);
 				g2d.drawLine((enemy.getX() + 1) * 20, enemy.getY() * 20, enemy.getX()  * 20, (enemy.getY() + 1) * 20);
 			}
@@ -165,6 +208,21 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 			g.fillRect(tower.getX() * 20, tower.getY() * 20, 20, 20);
 			g.setColor(new Color(0, 255, 0));
 			g.fillPolygon(towerShape);
+
+			Integer c = 0;
+			for (int i = (tower.getY() - 5); i <= tower.getY() + 5; i++) {
+				for (int j = (tower.getX() - c); j <= tower.getX() + c; j++) {
+					if (i >= 2 && i <= (boardHeight - 2) && j >= 2 && j <= (boardWitdh - 3)) {
+						g.setColor(new Color(255, 0, 255, 60));
+						g.fillRect(j * 20, i * 20, 20, 20);
+					}
+				}
+				if (i < tower.getY()) {
+					c++;
+				} else {
+					c--;
+				}
+			}
 		}
 	}
 	
@@ -210,7 +268,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		drawHome(g);
 		drawEnemy(g);
 		drawTower(g);
-		drawDamageArea(g);
+//		drawDamageArea(g);
 		drawHighLight(g);
 		drawMenu(g);
 	}
@@ -287,25 +345,24 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	
 	@Override
 	public void run() {
-		Integer enemyToBeSpawn = random.nextInt(enemyList.size());
 		home.active();
 		while (!isGameOver) {
 			repaint();
-			if (enemyList.get(enemyToBeSpawn).getStatus().equals("not_active")) {
-				enemyList.get(enemyToBeSpawn).spawn();
-			}
 			for (Enemy enemy: enemyList) {
-				if (enemy.getStatus().equals("active") || 
-					 enemy.getStatus().equals("progressing")) {	
-					enemy.setMove(home, board, createTile());
-				}
-				//TODO belum sesuai, yang ini ngurangi HP permanent kalo musuh posisinya sama dengan homenya
-				if(enemy.getX() == home.getX() && enemy.getY() == home.getY()) {
-					home.setStatus("attacked");
+				if(!enemy.getStatus().equals("destroyed")){
+					if (enemy.getStatus().equals("active") || 
+							 enemy.getStatus().equals("progressing")) {	
+							enemy.setMove(home, board, createTile());
+						}
+						if(enemy.getX() == home.getX() && enemy.getY() == home.getY()) {
+							home.setHp(home.getHp() - 1);
+							enemy.selfDestroy();
+							if(home.getHp() <= 0){
+//								isGameOver = true;
+							}
+						}
 				}
 			}
-			//TODO random enemynya belum sempurnah, ini masih bug {munculin semua musuh}
-			 enemyToBeSpawn = random.nextInt(enemyList.size());
 		}
 	}
 	

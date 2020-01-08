@@ -20,6 +20,8 @@ public class MainFrame extends JFrame {
 		setDefaultCloseOperation(3);
 		setLocationRelativeTo(null);
 		setVisible(true);
+		
+		gamePanel.newGame();
 	}
 
 	public static void main(String[] args) {
