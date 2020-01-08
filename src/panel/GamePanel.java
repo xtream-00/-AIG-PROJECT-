@@ -358,7 +358,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 							home.setHp(home.getHp() - 1);
 							enemy.selfDestroy();
 							if(home.getHp() <= 0){
-//								isGameOver = true;
+								isGameOver = true;
 							}
 						}
 				}

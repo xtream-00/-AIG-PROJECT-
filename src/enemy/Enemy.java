@@ -131,6 +131,7 @@ public class Enemy implements Runnable{
 	}
 	
 	public void spawn() {
+		GamePanel.removeBoardWeight(getX(), getY(), Type.SPAWNER);
 		setStatus("spawning");
 		GamePanel.addBoardWeight(getX(), getY(), Type.ENEMY);
 //		Thread thread = new Thread(new Runnable() {
