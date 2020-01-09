@@ -20,6 +20,7 @@ public class Enemy implements Runnable{
 	private Home home;
 	private Integer[][]board;
 	private Tile[][] tileListCreated;
+	private Integer hp;
 	
 	public Integer getX() {
 		return x;
@@ -51,6 +52,21 @@ public class Enemy implements Runnable{
 
 	public void setThread(Thread thread) {
 		this.thread = thread;
+	}
+
+	public Integer getHp() {
+		return hp;
+	}
+
+	public void setHp(Integer hp) {
+		this.hp = hp;
+		if(getHp() <= 0) {
+			selfDestroy();
+		}
+	}
+	
+	public void decreaseHp() {
+		setHp(getHp() - 1);
 	}
 
 	public Enemy(Integer x, Integer y, String status) {
@@ -123,16 +139,20 @@ public class Enemy implements Runnable{
 	
 	public void move(Tile parent, Enemy enemy) {
 			if (parent != null) {
+				GamePanel.setPlaceable(getX(), getY(), true);
 				GamePanel.removeBoardWeight(getX(), getY(), Type.ENEMY);
 				enemy.setX(parent.getxSrc());
 				enemy.setY(parent.getySrc());
+				GamePanel.setPlaceable(getX(), getY(), false);
 				GamePanel.addBoardWeight(getX(), getY(), Type.ENEMY);
 			}
 	}
 	
 	public void spawn() {
+		GamePanel.setPlaceable(getX(), getY(), true);
 		GamePanel.removeBoardWeight(getX(), getY(), Type.SPAWNER);
 		setStatus("spawning");
+		GamePanel.setPlaceable(getX(), getY(), false);
 		GamePanel.addBoardWeight(getX(), getY(), Type.ENEMY);
 //		Thread thread = new Thread(new Runnable() {
 //			@Override

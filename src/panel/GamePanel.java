@@ -24,13 +24,13 @@ import type.Type;
 
 public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyListener, Runnable {
 	
-	private Boolean isGameOver;
+	private static Boolean isGameOver;
 	private Integer xCursor;
 	private Integer yCursor;
-	private Integer boardWitdh;
-	private Integer boardHeight;
+	private static Integer boardWitdh;
+	private static Integer boardHeight;
 	private static Integer[][] board;
-	private Boolean[][] isPlaceable;
+	private static Boolean[][] isPlaceable;
 	private Integer spawnTime;
 	private Home home;
 	private Vector<Enemy> enemyList;
@@ -140,10 +140,53 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	}
 	
 	public void createTower(Integer x, Integer y) {
-		towerList.add(new Tower(x, y, null));
+		Tower tower = new Tower(x, y, null);
+		towerList.add(tower);
 		board[y][x] += Type.TOWER;
 		isPlaceable[y][x] = false;
 		createDamageArea(x, y);
+		
+		Thread towerThread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while(!isGameOver()) {
+					Integer c = 0;
+					
+					Boolean isTargetEnemyInRadius = false;
+					for (int i = (tower.getY() - 5); i <= tower.getY() + 5; i++) {
+						for (int j = (tower.getX() - c); j <= tower.getX() + c; j++) {
+							if (i >= 2 && i <= (boardHeight - 2) && j >= 2 && j <= (boardWitdh - 3)) {
+								if(tower.getTargetEnemy() == null) {
+									for(Enemy enemy : enemyList) {
+										if(enemy.getY() == i && enemy.getX() == j) {
+											tower.setTargetEnemy(enemy);
+											isTargetEnemyInRadius = true;
+										}
+									}
+								}
+								else {
+									if(tower.getTargetEnemy().getY() == i && tower.getTargetEnemy().getX() == j) {
+										isTargetEnemyInRadius = true;
+									}
+								}
+							}
+						}
+						if (i < tower.getY()) {
+							c++;
+						} else {
+							c--;
+						}
+					}
+					
+					if(isTargetEnemyInRadius == false) {
+						tower.setTargetEnemy(null);
+					}
+				}
+			}
+		});
+		
+		towerThread.start();
 	}
 	
 	public void createDamageArea(Integer xCentral, Integer yCentral) {
@@ -161,6 +204,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 				c--;
 			}
 		}
+	}
+	
+	public static void setPlaceable(Integer x, Integer y, Boolean placeable) {
+		isPlaceable[y][x] = placeable;
 	}
 	
 	public void drawWall(Graphics g) {
@@ -225,6 +272,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 					if (i >= 2 && i <= (boardHeight - 2) && j >= 2 && j <= (boardWitdh - 3)) {
 						g.setColor(new Color(255, 0, 255, 60));
 						g.fillRect(j * 20, i * 20, 20, 20);
+						isPlaceable[i][j] = false;
 					}
 				}
 				if (i < tower.getY()) {
@@ -286,7 +334,19 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		g.fillPolygon(towerShape);
 		g.setColor(Color.BLACK);
 		g.drawString("Enemy In Full Health", 850, 127);
-	}	
+	}
+	
+	public void drawAttackLine(Graphics g) {
+		for (Tower tower: towerList) {
+			if(tower.getTargetEnemy() != null) {
+				Enemy enemy = tower.getTargetEnemy();
+				Graphics2D g2 = (Graphics2D) g;
+				g2.setColor(Color.BLUE);
+				g2.setStroke(new BasicStroke(5));
+				g2.drawLine(tower.getX()* 20 + 10, tower.getY() * 20 + 10, enemy.getX() * 20 + 10, enemy.getY() * 20 + 10);
+			}
+		}
+	}
 	
 	@Override
 	public void paint(Graphics g) {
@@ -298,6 +358,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		drawHighLight(g);
 		drawHome(g);
 		drawEnemy(g);
+		drawAttackLine(g);
 		drawMenu(g);
 	}
 	
@@ -371,6 +432,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		return tileList;
 	}
 	
+	public static boolean isGameOver() {
+		return isGameOver;
+	}
+	
 	@Override
 	public void run() {
 		home.active();
@@ -393,6 +458,22 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 				}
 			}
 		}
+	}
+
+	public static Integer getBoardWitdh() {
+		return boardWitdh;
+	}
+
+	public static void setBoardWitdh(Integer boardWitdh) {
+		GamePanel.boardWitdh = boardWitdh;
+	}
+
+	public static Integer getBoardHeight() {
+		return boardHeight;
+	}
+
+	public static void setBoardHeight(Integer boardHeight) {
+		GamePanel.boardHeight = boardHeight;
 	}
 	
 }
