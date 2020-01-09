@@ -10,6 +10,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.Random;
@@ -24,12 +25,12 @@ import type.Type;
 public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyListener, Runnable {
 	
 	private Boolean isGameOver;
-	private Boolean isPlaceable;
 	private Integer xCursor;
 	private Integer yCursor;
 	private Integer boardWitdh;
 	private Integer boardHeight;
 	private static Integer[][] board;
+	private Boolean[][] isPlaceable;
 	private Integer spawnTime;
 	private Home home;
 	private Vector<Enemy> enemyList;
@@ -40,6 +41,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	public GamePanel() {
 		boardWitdh = 40;
 		boardHeight = 30;
+		isPlaceable = new Boolean[boardHeight + 5][boardWitdh + 5];
+		for (Boolean[] row : isPlaceable) {
+			Arrays.fill(row, true);
+		}
 		board = new Integer[boardHeight + 5][boardWitdh + 5];
 		isGameOver = false;
 		enemyList = new Vector<>();
@@ -63,6 +68,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 			for (Integer j = 0; j < boardWitdh; j++) {
 				if (i == 0 || i == (boardHeight - 1) || j == 0 || j == (boardWitdh - 1)) {
 					board[i][j] = Type.WALL;
+					isPlaceable[i][j] = false;
 				}
 			}
 		}
@@ -84,6 +90,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 				if (i == 1 ||  j == 1 || j == (boardWitdh - 2)) {
 					enemyList.add(new Enemy(j, i, "not_active"));
 					board[i][j] = Type.SPAWNER;
+					isPlaceable[i][j] = false;
 				}
 			}
 		}
@@ -129,11 +136,13 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	public void createHome() {
 		home = new Home(20, 25, 3);
 		board[home.getY()][home.getX()] = Type.HOME;
+		isPlaceable[home.getY()][home.getX()] = false;
 	}
 	
 	public void createTower(Integer x, Integer y) {
 		towerList.add(new Tower(x, y, null));
 		board[y][x] += Type.TOWER;
+		isPlaceable[y][x] = false;
 		createDamageArea(x, y);
 	}
 	
@@ -143,6 +152,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 			for (int j = (xCentral - c); j <= xCentral + c; j++) {
 				if (i >= 2 && i <= (boardHeight - 2) && j >= 2 && j <= (boardWitdh - 3)) {
 					board[i][j] += Type.RADIUS;
+					isPlaceable[i][j] = false;
 				}
 			}
 			if (i < yCentral) {
@@ -177,10 +187,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 		g.setColor(Color.BLUE);
 		Polygon homeShape = new Polygon();
 		homeShape.addPoint(home.getX() * 20 + 0, home.getY() * 20 + 10);		
-		homeShape.addPoint(home.getX() * 20+10, home.getY() * 20 + 0);
-		homeShape.addPoint(home.getX() * 20+20, home.getY() * 20 + 10);
-		homeShape.addPoint(home.getX() * 20+20, home.getY() * 20 + 20);
-		homeShape.addPoint(home.getX() * 20 + 0, home.getY() * 20 +20);
+		homeShape.addPoint(home.getX() * 20 + 10, home.getY() * 20 + 0);
+		homeShape.addPoint(home.getX() * 20 + 20, home.getY() * 20 + 10);
+		homeShape.addPoint(home.getX() * 20 + 20, home.getY() * 20 + 20);
+		homeShape.addPoint(home.getX() * 20 + 0, home.getY() * 20 + 20);
 		g.fillPolygon(homeShape);
 	}
 	
@@ -201,9 +211,9 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	public void drawTower(Graphics g) {
 		for (Tower tower: towerList) {
 			Polygon towerShape = new Polygon();
-			towerShape.addPoint(tower.getX() * 20 + 0, tower.getY() * 20 +20);
-			towerShape.addPoint(tower.getX() * 20+10, tower.getY() * 20 + 0);
-			towerShape.addPoint(tower.getX() * 20+20, tower.getY() * 20 + 20);
+			towerShape.addPoint(tower.getX() * 20 + 0, tower.getY() * 20 + 20);
+			towerShape.addPoint(tower.getX() * 20 + 10, tower.getY() * 20 + 0);
+			towerShape.addPoint(tower.getX() * 20 + 20, tower.getY() * 20 + 20);
 			g.setColor(new Color(255, 0, 255, 60));
 			g.fillRect(tower.getX() * 20, tower.getY() * 20, 20, 20);
 			g.setColor(new Color(0, 255, 0));
@@ -239,37 +249,55 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 	
 	public void drawHighLight(Graphics g) {
 		if (xCursor != null && yCursor != null) {
-			if (board[yCursor][xCursor] == Type.WALL ||
-				 board[yCursor][xCursor] == Type.ENEMY ||
-				 board[yCursor][xCursor] == Type.TOWER ||
-				 board[yCursor][xCursor] == Type.HOME ||
-				 board[yCursor][xCursor] == Type.RADIUS) {				
+			if (!isPlaceable[yCursor][xCursor]) {				
 				g.setColor(new Color(0, 0, 0, 130) );
 				g.fillRect(xCursor * 20, yCursor * 20, 20, 20); 
-				isPlaceable = false;
 			} else {
 				g.setColor(new Color(0, 255, 0, 130) );
 				g.fillRect(xCursor * 20, yCursor * 20, 20, 20);
-				isPlaceable = true;
 			}
 		}
 	}
 	
-	//TODO buat draw menunya disini aja, gak perlu manggil lagi
 	public void drawMenu(Graphics g) {
-		
-	}
+		g.setColor(Color.BLUE);
+		Polygon homeShape = new Polygon();
+		homeShape.addPoint(41 * 20 + 0, 2 * 20 + 10);		
+		homeShape.addPoint(41 * 20 + 10,  2 * 20 + 0);
+		homeShape.addPoint(41 * 20 + 20, 2 * 20 + 10);
+		homeShape.addPoint(41 * 20 + 20, 2 * 20 + 20);
+		homeShape.addPoint(41 * 20 + 0, 2 * 20 + 20);
+		g.fillPolygon(homeShape);
+		g.setColor(Color.BLACK);
+		g.drawString("Home", 850, 59);
+		g.setColor(new Color(165, 42, 42));
+		g.fillOval(41 * 20, 3 * 20 + 3, 20, 20);
+		g.setColor(Color.BLACK);
+		g.drawString("Enemy Base Color", 850, 80);
+		g.setColor(new Color(255, 0, 0));
+		g.fillOval(41 * 20, 4 * 20 + 5, 20, 20);
+		g.setColor(Color.BLACK);
+		g.drawString("Enemy In Full Health", 850, 102);
+		Polygon towerShape = new Polygon();
+		towerShape.addPoint(41 * 20 + 0, 5 * 20 + 27);
+		towerShape.addPoint(41 * 20 + 10, 5 * 20 + 7);
+		towerShape.addPoint(41 * 20 + 20, 5 * 20 + 27);
+		g.setColor(new Color(0, 255, 0));
+		g.fillPolygon(towerShape);
+		g.setColor(Color.BLACK);
+		g.drawString("Enemy In Full Health", 850, 127);
+	}	
 	
 	@Override
 	public void paint(Graphics g) {
 		super.paint(g);
 		drawWall(g);
 		drawFloor(g);
-		drawHome(g);
-		drawEnemy(g);
 		drawTower(g);
 //		drawDamageArea(g);
 		drawHighLight(g);
+		drawHome(g);
+		drawEnemy(g);
 		drawMenu(g);
 	}
 	
@@ -290,7 +318,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		if (isPlaceable) {
+		if (yCursor != null && xCursor != null && isPlaceable[yCursor][xCursor]) {
 			createTower(xCursor, yCursor);
 		}
 	}
@@ -359,6 +387,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 							enemy.selfDestroy();
 							if(home.getHp() <= 0){
 								isGameOver = true;
+								System.out.println("Game Over");
 							}
 						}
 				}
