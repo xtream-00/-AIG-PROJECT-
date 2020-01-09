@@ -75,6 +75,7 @@ public class Enemy implements Runnable{
 		this.y = y;
 		this.status = status;
 		this.thread = new Thread(this);
+		this.hp = 100;
 	}
 
 	public Enemy() {
@@ -170,8 +171,8 @@ public class Enemy implements Runnable{
 	}
 	
 	public void selfDestroy(){
-		setStatus("destroyed");
 		GamePanel.removeBoardWeight(getX(), getY(), Type.ENEMY);
+		setStatus("destroyed");
 		System.out.println("Destroyed");
 	}
 	

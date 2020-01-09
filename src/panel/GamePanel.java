@@ -159,7 +159,9 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 							if (i >= 2 && i <= (boardHeight - 2) && j >= 2 && j <= (boardWitdh - 3)) {
 								if(tower.getTargetEnemy() == null) {
 									for(Enemy enemy : enemyList) {
-										if(enemy.getY() == i && enemy.getX() == j) {
+										if(enemy.getY() == i && enemy.getX() == j 
+												&& !enemy.getStatus().equals("not_active")
+												&& !enemy.getStatus().equals("destroyed")) {
 											tower.setTargetEnemy(enemy);
 											isTargetEnemyInRadius = true;
 										}
@@ -181,6 +183,19 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 					
 					if(isTargetEnemyInRadius == false) {
 						tower.setTargetEnemy(null);
+					}
+					
+					if(tower.getTargetEnemy() != null) {
+						try {
+							Thread.sleep(1000/60);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						tower.getTargetEnemy().decreaseHp();
+						if(tower.getTargetEnemy().getStatus().equals("destroyed")) {
+							tower.setTargetEnemy(null);
+						}
 					}
 				}
 			}
