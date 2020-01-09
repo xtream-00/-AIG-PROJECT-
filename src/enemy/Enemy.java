@@ -20,6 +20,7 @@ public class Enemy implements Runnable{
 	private Home home;
 	private Integer[][]board;
 	private Tile[][] tileListCreated;
+	private Integer hp;
 	
 	public Integer getX() {
 		return x;
@@ -53,12 +54,28 @@ public class Enemy implements Runnable{
 		this.thread = thread;
 	}
 
+	public Integer getHp() {
+		return hp;
+	}
+
+	public void setHp(Integer hp) {
+		this.hp = hp;
+		if(getHp() <= 0) {
+			selfDestroy();
+		}
+	}
+	
+	public void decreaseHp() {
+		setHp(getHp() - 1);
+	}
+
 	public Enemy(Integer x, Integer y, String status) {
 		super();
 		this.x = x;
 		this.y = y;
 		this.status = status;
 		this.thread = new Thread(this);
+		this.hp = 100;
 	}
 
 	public Enemy() {
@@ -123,16 +140,20 @@ public class Enemy implements Runnable{
 	
 	public void move(Tile parent, Enemy enemy) {
 			if (parent != null) {
+				GamePanel.setPlaceable(getX(), getY(), true);
 				GamePanel.removeBoardWeight(getX(), getY(), Type.ENEMY);
 				enemy.setX(parent.getxSrc());
 				enemy.setY(parent.getySrc());
+				GamePanel.setPlaceable(getX(), getY(), false);
 				GamePanel.addBoardWeight(getX(), getY(), Type.ENEMY);
 			}
 	}
 	
 	public void spawn() {
+		GamePanel.setPlaceable(getX(), getY(), true);
 		GamePanel.removeBoardWeight(getX(), getY(), Type.SPAWNER);
 		setStatus("spawning");
+		GamePanel.setPlaceable(getX(), getY(), false);
 		GamePanel.addBoardWeight(getX(), getY(), Type.ENEMY);
 //		Thread thread = new Thread(new Runnable() {
 //			@Override
@@ -150,8 +171,8 @@ public class Enemy implements Runnable{
 	}
 	
 	public void selfDestroy(){
-		setStatus("destroyed");
 		GamePanel.removeBoardWeight(getX(), getY(), Type.ENEMY);
+		setStatus("destroyed");
 		System.out.println("Destroyed");
 	}
 	
@@ -159,14 +180,14 @@ public class Enemy implements Runnable{
 	public void run() {
 		while (!getStatus().equals("destroyed")) {
 			try {
-				thread.sleep(500);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			goToHome();
 		}
-		setX(-1);
-		setY(-1);
+//		setX(-1);
+//		setY(-1);
 	}
 
 }
