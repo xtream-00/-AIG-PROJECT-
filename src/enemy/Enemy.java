@@ -180,14 +180,14 @@ public class Enemy implements Runnable{
 	public void run() {
 		while (!getStatus().equals("destroyed")) {
 			try {
-				thread.sleep(500);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			goToHome();
 		}
-		setX(-1);
-		setY(-1);
+//		setX(-1);
+//		setY(-1);
 	}
 
 }
